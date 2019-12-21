@@ -5,7 +5,7 @@ from torch import nn
 from torch.autograd import Variable
 import pandas as pd
 from torch.nn.utils.rnn import pad_sequence, pack_padded_sequence,pad_packed_sequence
-import json
+import ujson as json
 import re
 import numpy as np
 import torch
