@@ -70,7 +70,7 @@ class Bsl1(nn.Module):
             summary='\n'.join(summary)
 
             all_ids.append(selected_ids)
-            fname = hyp_path+ids[i]+'.txt'
+            fname = os.path.join(hyp_path,ids[i]+'.txt')
             of = open(fname,'w')
             of.write(summary)
             summaryfile_batch.append(fname)
@@ -166,7 +166,7 @@ class Bsl2(nn.Module):
             summary='\n'.join(summary)
 
             all_ids.append(selected_ids)
-            fname = hyp_path+ids[i]+'.txt'
+            fname = os.path.join(hyp_path,ids[i]+'.txt')
             of = open(fname,'w')
             of.write(summary)
             summaryfile_batch.append(fname)
@@ -240,7 +240,7 @@ class Bsl3(nn.Module):
             summary='\n'.join(summary)
 
             all_ids.append(selected_ids)
-            fname = hyp_path+ids[i]+'.txt'
+            fname = os.path.join(hyp_path,ids[i]+'.txt')
             of = open(fname,'w')
             of.write(summary)
             summaryfile_batch.append(fname)
@@ -340,7 +340,7 @@ class Concatenation(nn.Module):
             summary='\n'.join(summary)
 
             all_ids.append(selected_ids)
-            fname = hyp_path+ids[i]+'.txt'
+            fname = os.path.join(hyp_path,ids[i]+'.txt')
             of = open(fname,'w')
             of.write(summary)
             summaryfile_batch.append(fname)
@@ -464,7 +464,7 @@ class Attentive_context(nn.Module):
             summary='\n'.join(summary)
 
             all_ids.append(selected_ids)
-            fname = hyp_path+ids[i]+'.txt'
+            fname = os.path.join(hyp_path,ids[i]+'.txt')
             of = open(fname,'w')
             of.write(summary)
             summaryfile_batch.append(fname)
@@ -634,7 +634,7 @@ class ChengAndLapataSentenceExtractor(nn.Module):
             summary='\n'.join(summary)
 
             all_ids.append(selected_ids)
-            fname = hyp_path+ids[i]+'.txt'
+            fname = os.path.join(hyp_path,ids[i]+'.txt')
             of = open(fname,'w')
             of.write(summary)
             summaryfile_batch.append(fname)
@@ -794,7 +794,7 @@ class SummaRunnerSentenceExtractor(nn.Module):
             summary='\n'.join(summary)
 
             all_ids.append(selected_ids)
-            fname = hyp_path+ids[i]+'.txt'
+            fname = os.path.join(hyp_path,ids[i]+'.txt')
             of = open(fname,'w')
             of.write(summary)
             summaryfile_batch.append(fname)

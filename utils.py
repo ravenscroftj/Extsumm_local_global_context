@@ -7,30 +7,45 @@ import pandas as pd
 import re
 import numpy as np
 import os
-import json 
+import ujson  as json
 import torch
+import io
 import os
+import tqdm
 import subprocess
 
 # Utility functions
 def get_posweight(train_label_dir,file_list_file=None):
-    if file_list_file != None:
-        of = open(file_list_file,'r')
-        file_list = of.readlines()
-        of.close()
-        file_l = [Path(train_label_dir+'/'+f.strip()+'.json') for f in file_list]
+
+    if os.path.exists(train_label_dir + ".posweight"):
+        with open(train_label_dir + ".posweight","r") as f:
+            posweight = json.load(f)['posweight']
+
     else:
-        label_dir = Path(train_label_dir)
-        file_l = [path for path in label_dir.glob("*.json")]
-    total_num=0
-    total_pos = 0
-    for f in file_l[:50000]:
-        with f.open() as of:
-            d = json.load(of)['labels']
-        total_num+=len(d)
-        total_pos+=sum(d)
-    print('Compute pos weight done! There are %d sentences in total, with %d sentences as positive'%(total_num,total_pos))
-    return torch.FloatTensor([(total_num-total_pos)/float(total_pos)])
+
+        if file_list_file != None:
+            of = open(file_list_file,'r')
+            file_list = of.readlines()
+            of.close()
+            file_l = [Path(train_label_dir+'/'+f.strip()+'.json') for f in file_list]
+        else:
+            label_dir = Path(train_label_dir)
+            file_l = [path for path in label_dir.glob("*.json")]
+        total_num=0
+        total_pos = 0
+        for f in tqdm.tqdm(file_l[:50000]):
+            with f.open() as of:
+                d = json.load(of)['labels']
+            total_num+=len(d)
+            total_pos+=sum(d)
+        print('Compute pos weight done! There are %d sentences in total, with %d sentences as positive'%(total_num,total_pos))
+
+        posweight = (total_num-total_pos)/float(total_pos)
+
+        with open(train_label_dir + ".posweight","w") as f:
+            json.dump({"posweight": posweight}, f)
+    
+    return torch.FloatTensor([posweight])
 
 def make_file_list(input_dir,file_list_file):
     of = open(file_list_file,'r')
@@ -46,7 +61,7 @@ def get_all_text(train_input_dir):
         train_input = Path(train_input_dir)
         file_l = [path for path in train_input.glob("*.json")]
     all_tokens = []
-    for f in file_l:
+    for f in tqdm.tqdm(file_l):
         with f.open() as of:
             d = json.load(of)
         tokens = [t for sent in d['inputs'] for t in (sent['tokens']+['<eos>'])]
@@ -55,6 +70,52 @@ def get_all_text(train_input_dir):
 
 def build_word2ind(utt_l, vocabularySize):
     word_counter = Counter([word for utt in utt_l for word in utt])
+    print('%d words found!'%(len(word_counter)))
+    vocabulary = ["<UNK>"] + [e[0] for e in word_counter.most_common(vocabularySize)]
+    word2index = {word:index for index,word in enumerate(vocabulary)}
+    global EOS_INDEX
+    EOS_INDEX = word2index['<eos>']
+    return word2index
+
+
+def build_word2ind_2(train_input_dir, vocabularySize):
+
+    if isinstance(train_input_dir,list):
+        file_l = train_input_dir
+    else:
+        train_input = Path(train_input_dir)
+        file_l = [path for path in train_input.glob("*.json")]
+
+    word_counter = Counter()
+
+    for file in tqdm.tqdm(file_l):
+        with open(file,'r') as of:
+            d = json.load(of)
+            word_counter.update([t for sent in d['inputs'] for t in (sent['tokens']+['<eos>'])])
+
+    vocabulary = ["<UNK>"] + [e[0] for e in word_counter.most_common(vocabularySize)]
+    word2index = {word:index for index,word in enumerate(vocabulary)}
+    global EOS_INDEX
+    EOS_INDEX = word2index['<eos>']
+    return word2index
+
+
+def build_word2ind_zip(zf, input_list, vocabularySize):
+
+    word_counter = Counter()
+
+    for file in tqdm.tqdm(input_list):
+      path = zf.getinfo(file)
+
+      if path.is_dir():
+        continue
+
+      fp = io.BytesIO(zf.read(path))
+      d = json.load(fp)
+      tokens = [t for sent in d['inputs'] for t in (sent['tokens']+['<eos>'])]
+
+      word_counter.update(tokens)
+    
     print('%d words found!'%(len(word_counter)))
     vocabulary = ["<UNK>"] + [e[0] for e in word_counter.most_common(vocabularySize)]
     word2index = {word:index for index,word in enumerate(vocabulary)}
@@ -99,7 +160,7 @@ def get_rouge(hyp_pathlist, ref_pathlist, length_limit,remove_stopwords,stemmer,
     uttnames.append('Average')
     df,avgfs = rouge_papier_v2.compute_rouge(
         config_path, max_ngram=2, lcs=lcs, 
-        remove_stopwords=remove_stopwords,stemmer=stemmer,set_length = False, length=length_limit)
+        remove_stopwords=remove_stopwords,stemmer=stemmer, length=length_limit)
     df['data_ids'] = pd.Series(np.array(uttnames),index =df.index)
     avg = df.iloc[-1:].to_dict("records")[0]
     if lcs:

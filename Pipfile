@@ -16,6 +16,9 @@ ujson = "*"
 tqdm = "*"
 requests = "*"
 flask = "*"
+click = "*"
+lxml = "*"
+spacy = "*"
 
 [requires]
 python_version = "3.6"
